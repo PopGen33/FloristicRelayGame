@@ -1,0 +1,309 @@
+---
+title: "FloristicRelayGame"
+output: 
+    html_document:
+        toc: true
+        theme: united
+vignette: >
+  %\VignetteIndexEntry{FloristicRelayGame}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction to the FloristicRelayGame R Package
+This package provides ways of constucting the component of the Floristic Relay Game in R 
+and using those components to simulate games of floristic relay. 
+This vignette assumes you know, in general, how the game works and its components, so please read the original description 
+of the floristic relay game that can be found [here](https://tiee.esa.org/vol/v3/experiments/floristic/description.html).
+This package can be used for simply exploring  the frequency of different outcomes of the game given different 
+event deck compositions or could serve as a very simple way of introducing students to simulation and data 
+analysis. This vignette will teach you to construct various floristic relay game components, simulate games 
+of floristic relay,and visualize the results compiled from multiple simulations. All of the following sections 
+assume you have already loaded the package:
+```{r setup}
+library(FloristicRelayGame)
+```
+
+If you're *not* interested in creating custom game components (interactions, events, plants, etc.), you can skip to 
+the sections on simulating a single game or many games for examples of simulations using the default, pre-defined game components (see Table of Contents above).
+
+# Creating Floristic Relay Game Components
+This section will teach you how to construct different components needed to simulate the floristic relay game. 
+Calling `help()` on the functions mentioned below will pull up documentation that provides more details.
+
+## Creating a gameboard
+You can create a gameboard using the `floristic_gameboard()` function. This function has a single argument: spaces.
+the spaces argument takes a vector of integer numbers defining the spaces on the gameboard. Most spaces should be 0, 
+indicating that players should stay on the space when they land there. Others are integer numbers indicating how many 
+spaces the player moves when landing on that space after their turn (postive = forward; negative = backward). The last 
+integer in this vector is the goal space and must be 0. The start space is *not* included in this vector and is always 
+implicitly 0. The `default_gameboard` is available as soon as the package is loaded and was created as follows:
+```{r creating_gameboard}
+default_gameboard <- floristic_gameboard(spaces = as.integer(c(0, 0, 0, 2, 0,
+                                                               0, 0, -1, 0, 0,
+                                                               0, 0, -1, 0, 0,
+                                                               -1, 0, 0, 0, 2,
+                                                               0, 0, -1, 0, 0)))
+```
+## Creating an event deck
+Event decks are extremely simple. An event deck is a vector of character strings name the disturbance events that 
+floristic_plants respond to. For example, if you include "Wildfire" in your event deck, every floristic_plant in the 
+game must have a defined event_response for "Wildfire". The name in the event deck and the "event" field of the event_response
+**MUST** match exactly! When the package is loaded, `default_event_deck` is available as an example event deck that works 
+with the pre-defined plants. It was created as follows:
+```{r creating_event_deck}
+default_event_deck <- c(rep("No Disturbance", times = 6), 
+                        rep("Landslide", times = 2), 
+                        rep("Animals Grazing", times = 2), 
+                        rep("Wildfire", times = 2))
+```
+You should shuffle the deck before simulating a game:
+```{r shuffling_event_deck}
+shuffled_events <- sample(default_event_deck)
+```
+
+## Creating a floristic_interaction
+You can define an interaction using the `floristic_interaction()` function. This function has five arguments: name, 
+early_effect, late_effect, tie_winner, and tie_loser. The "name" argument is just the name of the interaction. 
+The 'early_effect' argument is the number of spaces the an "Early" plant moves in an interaction between an "Early" and 
+"Late" plant. Conversely, the 'late_effect' argument is how many spaces the "Late" plant moves. In the event of two plants 
+of the *same* type interacting, a winner is decided randomly. The "tie_winner" argument determines how many spaces the 
+winner moves. The "tie_loser" argument determines how many spaces the loser moves. When the package is loaded, `tolerance`, 
+`competition_for_light`, `competition_for_water`, `facilitation_with_nutrients`, and `facilitation_with_shade` are available 
+as pre-defined interactions. As an example, `competition_for_light` was defined as follows:
+```{r creating_floristic_interaction}
+competition_for_light <- floristic_interaction(name = "Competition for Light", 
+                                               early_effect = -1L,
+                                               late_effect = 2L,
+                                               tie_winner = 2L,
+                                               tie_loser = -1L)
+```
+
+## Creating an interactions deck
+An interaction deck is a vector of floristic_interactions. When the package is loaded, `default_interaction_deck` is 
+available as an example using the interactions orginally described along with the game. It was created as follows:
+```{r creating_interaction_deck}
+default_interaction_deck <- c(competition_for_water, 
+                              competition_for_light, 
+                              facilitation_with_nutrients,
+                              facilitation_with_shade,
+                              tolerance,
+                              tolerance)
+```
+You should shuffle the deck before simulating a game:
+```{r shuffling_interaction_deck}
+shuffled_interactions <- sample(default_interaction_deck)
+```
+
+## Creating a floristic_plant
+You can create a plant using the `floristic_plant()` function. This function has 3 arguments: name, type, and event_responses.
+The 'name' argument is the name of the plant. The type argument designates the plant as either an early-succession 
+or late-sucession species and **MUST** be either "Early" or "Late". The event_responses argument is a list of 
+objects created with the function `event_response()`. The `event_response()` function has two arguments: event and response.
+the 'event' argument is the name of the event and **MUST** exactly match one of the events in the event deck (see above 
+section on 'Creating an event deck'). The 'response' argument is an integer the determines how many spaces the player moves when that event is drawn from the event deck. When the package is loaded, `momerath_herb`, `mimsy_bush`, `borogrove_grass`, 
+`lorax_tree`, `truffula_tree`, and `grickle_grass` are available as pre-defined plants. As an example, `momerath_herb` was 
+created as follows:
+```{r creating_plant}
+momerath_herb <- floristic_plant(name = "Momerath herb",
+                                 type = "Early",
+                                 event_responses = list(
+                                     event_response(event = "Wildfire",
+                                                    response = 5L),
+                                     event_response(event = "Landslide",
+                                                    response = 2L),
+                                     event_response(event = "Animals Grazing",
+                                                    response = 0L),
+                                     event_response(event = "No Disturbance",
+                                                    response = -1L)
+                                 )
+)
+```
+
+## Creating a player order
+A player order is a list of floristic players created using the `floristic_player()` function. The 
+`floristic_player()` function takes three arguments: name, player_character, and position. The 'name' argument, 
+representing the player's name, is totally unused by the package and can be left unset. The player_character argument 
+takes a plant defined using `floristic_plant()` (see above). The position argument is an integer representing the 
+player's position on the gameboard and should logically be initialized as 0 (the start), but you can give players a 
+head start by initializing it as a positive integer (untested by the package author; try at your own risk). The 
+`default_players` list is available when the package is loaded and contains players for each of the 6 pre-defined plants.
+It was created as follows:
+```{r creating_player_list}
+default_players <- list(
+    floristic_player(player_character = momerath_herb,
+                     position = 0L),
+    floristic_player(player_character = lorax_tree,
+                     position = 0L),
+    floristic_player(player_character = grickle_grass,
+                     position = 0L),
+    floristic_player(player_character = truffula_tree,
+                     position = 0L),
+    floristic_player(player_character = mimsy_bush,
+                     position = 0L),
+    floristic_player(player_character = borogrove_grass,
+                     position = 0L)
+)
+```
+You should randomize the player order before simulating a game:
+```{r randomize_player_order}
+shuffled_players <- sample(default_players)
+```
+# Simulating a game of floristic relay
+Simulating a game simply requires calling the `simulate_floristic_game()` function. This function takes 5 arguments: 
+gameboard, event_deck, interactions_deck, player_order, and turn_by_turn. The "gameboard" argument requires a gameboard 
+created with the `floristic_gameboard()` function. The "event_deck" argument requires an event deck (see above section on 
+creating event decks). The "interactions_deck" argument requires an interactions deck (again, see above). The "player_order" 
+argment requires a list of players (again, see above). Finally, the "turn_by_turn" argument is a boolean / logical determining
+if messages describing each turn should be printed. This is `FALSE` by default (recommend outside of debugging). We can 
+simulate a game using the pre-defined objects as follows:
+```{r simulate_single_game}
+simulate_floristic_game(default_gameboard, 
+                        sample(default_event_deck), 
+                        sample(default_interaction_deck), 
+                        sample(default_players))
+```
+
+As you can see, the function returns a dataframe recording the results of the game. See the section below for an example 
+of combining many of these results dataframes and visualizing the results.
+
+# Simulating many games of floristic relay
+To simulate many games of floristic relay, I personally use a loop. I'm sure there's a way to do this using the apply family 
+functions, but it wasn't immediately obvious to me. As an example, here is code to simulate 1000 games of floristic relay 
+using the default, pre-defined objects:
+```{r simulate_thousand_games}
+# Set sample size (number of games)
+sample_size <- 1000
+
+# Create results dataframe to catch the results from each game
+all_results <- data.frame(game_number <- numeric(),
+                          Plant_name <- character(),
+                          Late_or_Early <- character(),
+                          Final_Position <- numeric(),
+                          Rank <- numeric())
+
+# Run games
+for(i in 1:sample_size){
+    
+    # Shuffle the event deck
+    shuffed_event_deck <- sample(default_event_deck)
+    
+    # Shuffle the interactions deck
+    shuffed_interaction_deck <- sample(default_interaction_deck)
+    
+    # Randomize player order
+    player_order <- sample(default_players)
+    
+    # simulate game
+    game_result <- simulate_floristic_game(default_gameboard, shuffed_event_deck, shuffed_interaction_deck, player_order)
+    
+    # cbind on the game number (unique identifier for each game)
+    game_result <- cbind(game_number = rep(i, times = nrow(game_result)), game_result)
+    
+    # bind it to all_results
+    all_results <- rbind(all_results, game_result)
+}
+
+str(all_results)
+
+```
+
+As a second example, considering modifying the event deck to remove 2 'No Disturbance' cards and add 2 'Wildfire' cards. 
+Simulating that deck can provide us some interesting results to compare to:
+```{r simulate_thousand_fire_games}
+# Set sample size (number of games)
+sample_size <- 1000
+
+# Create the custom, fire-heavy event deck (+2 Wildfire, -2 No Disturbance)
+event_deck_fireHeavy <- c(rep("No Disturbance", times = 4), 
+                          rep("Landslide", times = 2), 
+                          rep("Animals Grazing", times = 2), 
+                          rep("Wildfire", times = 4))
+
+# Create results dataframe to catch the results from each game
+# Postfixed with "_fire" to distinguish it from our previous simulation
+all_results_fire <- data.frame(game_number <- numeric(),
+                               Plant_name <- character(),
+                               Late_or_Early <- character(),
+                               Final_Position <- numeric(),
+                               Rank <- numeric())
+
+# Run games
+for(i in 1:sample_size){
+    
+    # Shuffle the event deck
+    # Notice that we're sampling the event_deck_fireHeavy we created above
+    shuffed_event_deck <- sample(event_deck_fireHeavy)
+    
+    # Shuffle the interactions deck
+    shuffed_interaction_deck <- sample(default_interaction_deck)
+    
+    # Randomize player order
+    player_order <- sample(default_players)
+    
+    # simulate game
+    game_result <- simulate_floristic_game(default_gameboard, shuffed_event_deck, shuffed_interaction_deck, player_order)
+    
+    # cbind on the game number (unique identifier for each game)
+    game_result <- cbind(game_number = rep(i, times = nrow(game_result)), game_result)
+    
+    # bind it to all_results
+    all_results_fire <- rbind(all_results_fire, game_result)
+}
+
+str(all_results_fire)
+
+```
+
+# Graphing results using ggplot2 and ggthemes
+This section describes my preferred method of graphing the results from the 1000 game simulations. I use ggplot2 and a 
+theme from the ggthemes package. You should modify these as you see fit (you can read the ggplot2 documentation to help 
+with that; removing `ggtitle()` is a good place to start). First, let's graph the results from the 1000 simulations using the 
+default event deck:
+```{r graph_default_deck}
+# First, load the libraries I use for graphing
+library(ggplot2)
+library(ggthemes)
+
+# Stacked bar plot for the 1000 simulations using the default event deck
+ggplot(all_results, mapping = aes(x = Late_or_Early, fill = Plant_Name)) + 
+    geom_bar(position = "stack", color = "black") + 
+    scale_y_continuous(limits = c(0, 1000), breaks = seq(0, 1000, 200)) +
+    scale_fill_viridis_d() + 
+    ylab("Count") +
+    xlab("Rank") +
+    ggtitle("Floristic Relay Results by Rank", "(n = 1000; default events)") + 
+    facet_grid(cols = vars(Rank), switch = "x") +
+    theme_classic() + 
+    theme(strip.placement = "outside", 
+          legend.title = element_blank())
+```
+
+Now, let's graph the results from the 1000 simulations using the fire-heavy event deck:
+```{r graph_fire_deck}
+# Stacked bar plot for the 1000 simulations using the default event deck
+ggplot(all_results_fire, mapping = aes(x = Late_or_Early, fill = Plant_Name)) + 
+    geom_bar(position = "stack", color = "black") + 
+    scale_y_continuous(limits = c(0, 1000), breaks = seq(0, 1000, 200)) +
+    scale_fill_viridis_d() + 
+    ylab("Count") +
+    xlab("Rank") +
+    ggtitle("Floristic Relay Results by Rank", "(n = 1000; +2 Wildfire; -2 No Disturbance)") + 
+    facet_grid(cols = vars(Rank), switch = "x") +
+    theme_classic() + 
+    theme(strip.placement = "outside", 
+          legend.title = element_blank())
+```
+
+That's quite a big difference! 
+
+That's the end of the vignette. If you have questions, please contact me at the github repository listed 
+in the package description.
+

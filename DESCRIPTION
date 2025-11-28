@@ -1,16 +1,31 @@
 Package: FloristicRelayGame
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Simulate the Floristic Relay Game
 Version: 0.1.0
 Authors@R: c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
-      role = c("aut", "cre")
+      "Conrad", "Williams",
+      email = "radwil@gmail.com",
+      role = c("aut", "cre"),
+      comment = c(ORCID = "0000-0003-4361-3459")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
-License: What license is it under?
+Description: This is a small R package for simulating the "Floristic Relay Game" described here: <https://www.esa.org/tiee/vol/v3/experiments/floristic/description.html>. 
+    It provides functions for creating various parts of the game (gameboard, players, events, plants, etc.) as S7 objects and a function 
+    for simulating a game using those objects. It also provides "default" objects (e.g. momerath_herb) described in the game's original 
+    description.
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
+Depends: 
+    R (>= 3.5)
+Imports:
+    S7, 
+    dplyr
+RoxygenNote: 7.3.3
+Suggests: 
+    knitr,
+    rmarkdown,
+    ggplot2,
+    ggthemes
+VignetteBuilder: knitr
