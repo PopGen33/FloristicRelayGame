@@ -176,11 +176,11 @@ of combining many of these results dataframes and visualizing the results.
 
 # Simulating many games of floristic relay
 To simulate many games of floristic relay, I personally use a loop. I'm sure there's a way to do this using the apply family 
-functions, but it wasn't immediately obvious to me. As an example, here is code to simulate 1000 games of floristic relay 
+functions, but it wasn't immediately obvious to me. As an example, here is code to simulate 800 games of floristic relay 
 using the default, pre-defined objects:
 ```{r simulate_thousand_games}
 # Set sample size (number of games)
-sample_size <- 1000
+sample_size <- 800
 
 # Create results dataframe to catch the results from each game
 all_results <- data.frame(game_number <- numeric(),
@@ -222,7 +222,7 @@ As a second example, considering modifying the event deck to remove 2 'No Distur
 Simulating that deck can provide us some interesting results to compare to:
 ```{r simulate_thousand_fire_games}
 # Set sample size (number of games)
-sample_size <- 1000
+sample_size <- 800
 
 # Create the custom, fire-heavy event deck (+2 Wildfire, -2 No Disturbance)
 event_deck_fireHeavy <- c(rep("No Disturbance", times = 4), 
@@ -269,7 +269,7 @@ str(all_results_fire)
 ```
 
 # Graphing results using ggplot2 and ggthemes
-This section describes my preferred method of graphing the results from the 1000 game simulations. I use ggplot2 and a 
+This section describes my preferred method of graphing the results from the 800 game simulations. I use ggplot2 and a 
 theme from the ggthemes package. You should modify these as you see fit (you can read the ggplot2 documentation to help 
 with that; removing `ggtitle()` is a good place to start). First, let's graph the results from the 1000 simulations using the 
 default event deck:
@@ -278,37 +278,213 @@ default event deck:
 library(ggplot2)
 library(ggthemes)
 
-# Stacked bar plot for the 1000 simulations using the default event deck
+# Stacked bar plot for the 800 simulations using the default event deck
 ggplot(all_results, mapping = aes(x = Late_or_Early, fill = Plant_Name)) + 
     geom_bar(position = "stack", color = "black") + 
-    scale_y_continuous(limits = c(0, 1000), breaks = seq(0, 1000, 200)) +
+    scale_y_continuous(limits = c(0, 800), breaks = seq(0, 800, 200)) +
     scale_fill_viridis_d() + 
     ylab("Count") +
     xlab("Rank") +
-    ggtitle("Floristic Relay Results by Rank", "(n = 1000; default events)") + 
+    ggtitle("Floristic Relay Results by Rank", "(n = 800; default events)") + 
     facet_grid(cols = vars(Rank), switch = "x") +
     theme_classic() + 
     theme(strip.placement = "outside", 
           legend.title = element_blank())
 ```
 
-Now, let's graph the results from the 1000 simulations using the fire-heavy event deck:
+Now, let's graph the results from the 800 simulations using the fire-heavy event deck:
 ```{r graph_fire_deck}
-# Stacked bar plot for the 1000 simulations using the fire-heavy event deck
+# Stacked bar plot for the 800 simulations using the fire-heavy event deck
 ggplot(all_results_fire, mapping = aes(x = Late_or_Early, fill = Plant_Name)) + 
     geom_bar(position = "stack", color = "black") + 
-    scale_y_continuous(limits = c(0, 1000), breaks = seq(0, 1000, 200)) +
+    scale_y_continuous(limits = c(0, 800), breaks = seq(0, 800, 200)) +
     scale_fill_viridis_d() + 
     ylab("Count") +
     xlab("Rank") +
-    ggtitle("Floristic Relay Results by Rank", "(n = 1000; +2 Wildfire; -2 No Disturbance)") + 
+    ggtitle("Floristic Relay Results by Rank", "(n = 800; +2 Wildfire; -2 No Disturbance)") + 
     facet_grid(cols = vars(Rank), switch = "x") +
     theme_classic() + 
     theme(strip.placement = "outside", 
           legend.title = element_blank())
 ```
 
-That's quite a big difference! 
+That's quite a big difference! As you can see, the late-plants tend to take ranks 1-3 when using the default deck, but 
+their finishing order among those ranks is fairly random. Under the fire-heavy event deck, early succession plants tend to 
+take ranks 1-3 and, among those, momerath herb almost always takes rank 1. That makes sense if you read the card and see 
+how it responds to fire, or just type `momerath_herb` into the console after loading the package and look at its 
+event responses.
+
+# Adding complexity: example adding a NEW plant and NEW event
+The 6 pre-defined plants are all that were defined in the game's original description, but adding our new plant is 
+very simple using the `floristic_plant()` constructor. Let's make a plant that performs well under all disturbance 
+events and loses 1 space under no disturbance.
+```{r tumtum_tree}
+tumtum_tree <- floristic_plant(name = "Tumtum tree",
+                               type = "Early",
+                               event_responses = list(
+                                   event_response(event = "Wildfire",
+                                                  response = 2L),
+                                   event_response(event = "Landslide",
+                                                  response = 2L),
+                                   event_response(event = "Animals Grazing",
+                                                  response = 2L),
+                                   event_response(event = "No Disturbance",
+                                                  response = -1L)
+                               )
+)
+
+```
+
+Adding an event is more complex. While adding it to the event deck is fairly simple, you must then define an event 
+response for every plant in the game! This can be done by appending to the list of event_responses of each plant, like so:
+```{r add_event}
+# Create the new event deck
+custom_events <- c(rep("No Disturbance", times = 4), 
+                   rep("Landslide", times = 2), 
+                   rep("Animals Grazing", times = 2), 
+                   rep("Wildfire", times = 2),
+                   rep("Lawnmower", times = 2))
+```
+
+Above, I added the event "Lawnmower" to the custom event deck. Therefore, I **MUST** define event responses for all of the plants in the game (`momerath_herb`, `mimsy_bush`, `borogrove_grass`, `lorax_tree`, `truffula_tree`,`grickle_grass`, and, now, `tumtum_tree`):
+```{r fix_plants}
+# Store plants to new variables first (if you want)
+momerath_herb_custom <- momerath_herb
+mimsy_bush_custom <- mimsy_bush
+borogrove_grass_custom <- borogrove_grass
+lorax_tree_custom <- lorax_tree
+truffula_tree_custom <- truffula_tree
+grickle_grass_custom <- grickle_grass
+tumtum_tree_custom <- tumtum_tree
+
+# Add the new event responses
+momerath_herb_custom@event_responses <- append(momerath_herb_custom@event_responses,
+                                               event_response(event = "Lawnmower",
+                                                              response = 1L))
+mimsy_bush_custom@event_responses <- append(mimsy_bush_custom@event_responses,
+                                            event_response(event = "Lawnmower",
+                                                           response = -1L))
+borogrove_grass_custom@event_responses <- append(borogrove_grass_custom@event_responses,
+                                                 event_response(event = "Lawnmower",
+                                                                response = -1L))
+lorax_tree_custom@event_responses <- append(lorax_tree_custom@event_responses,
+                                            event_response(event = "Lawnmower",
+                                                           response = 1L))
+truffula_tree_custom@event_responses <- append(truffula_tree_custom@event_responses,
+                                               event_response(event = "Lawnmower",
+                                                              response = -1L))
+grickle_grass_custom@event_responses <- append(grickle_grass_custom@event_responses,
+                                               event_response(event = "Lawnmower",
+                                                              response = 1L))
+tumtum_tree_custom@event_responses <- append(tumtum_tree_custom@event_responses,
+                                             event_response(event = "Lawnmower",
+                                                            response = 2L))
+```
+
+Now, let's simulate 800 7-player games using our custom event deck and plants. You *could* similarly change the interaction deck or create a custom gameboard, but I'll used the pre-defined defaults for those game components:
+```{r simulate_custom_deck_and_plants}
+# Create player list
+custom_players <- list(
+    floristic_player(player_character = momerath_herb_custom,
+                     position = 0L),
+    floristic_player(player_character = lorax_tree_custom,
+                     position = 0L),
+    floristic_player(player_character = grickle_grass_custom,
+                     position = 0L),
+    floristic_player(player_character = truffula_tree_custom,
+                     position = 0L),
+    floristic_player(player_character = mimsy_bush_custom,
+                     position = 0L),
+    floristic_player(player_character = borogrove_grass_custom,
+                     position = 0L),
+    floristic_player(player_character = tumtum_tree_custom,
+                     position = 0L)
+)
+
+# Set sample size (number of games)
+sample_size <- 800
+
+# Create results dataframe to catch the results from each game
+# Postfixed with "_custom" to distinguish it from our previous simulations
+all_results_custom <- data.frame(game_number <- numeric(),
+                                 Plant_name <- character(),
+                                 Late_or_Early <- character(),
+                                 Final_Position <- numeric(),
+                                 Rank <- numeric())
+
+# Run games
+for(i in 1:sample_size){
+    
+    # Shuffle the event deck
+    # Notice that we're sampling the custom_events we created above
+    shuffed_event_deck <- sample(custom_events)
+    
+    # Shuffle the interactions deck
+    shuffed_interaction_deck <- sample(default_interaction_deck)
+    
+    # Randomize player order
+    # Again, notice that we're sampling custom_players
+    player_order <- sample(custom_players)
+    
+    # simulate game
+    game_result <- simulate_floristic_game(default_gameboard, 
+                                           shuffed_event_deck, 
+                                           shuffed_interaction_deck, 
+                                           player_order)
+    
+    # cbind on the game number (unique identifier for each game)
+    game_result <- cbind(game_number = rep(i, times = nrow(game_result)), game_result)
+    
+    # bind it to all_results
+    all_results_custom <- rbind(all_results_custom, game_result)
+}
+
+str(all_results_custom)
+
+# Graph the results
+ggplot(all_results_custom, mapping = aes(x = Late_or_Early, fill = Plant_Name)) + 
+    geom_bar(position = "stack", color = "black") + 
+    scale_y_continuous(limits = c(0, 800), breaks = seq(0, 800, 200)) +
+    scale_fill_viridis_d() + 
+    ylab("Count") +
+    xlab("Rank") +
+    ggtitle("Floristic Relay Results by Rank", "(n = 800; Custom Event Deck and Plants)") + 
+    facet_grid(cols = vars(Rank), switch = "x") +
+    theme_classic() + 
+    theme(strip.placement = "outside", 
+          legend.title = element_blank())
+
+```
+
+Our new Tumtum tree species performs moderately under this event deck. As you can see, the package and graphing 
+methods presented here are very flexible; feel free to experiment with your own custom events, plants, etc!
+
+# Implementation Notes
+There are some situations where the original description of the game is somewhat ambiguous, so I wanted to be clear about
+how I handled those situations.
+
+* The start space is treated as a "normal" space and, therefore, interactions *can* happen on the start space. Very often, 
+at the end of turn 1 especially, multiple players will still be on start, and I chose to let those players interact. This 
+was partially just easier to program (I don't have to add any special checks to the part of the code that handles 
+interactions), but it also gets players off of the start space faster if the interaction moves them forward.
+* Each possible pair of interactions between players is only checked *once* per turn. This was mostly done to simplify 
+the programming, but it also avoids potentially long chains of players moving due to interactions, and then 
+interacting again, and then moving again, etc. The consequences of this are easiest to illustrate with an example: 
+    1. Players 1 and 3 are on space 10. Player 2 is on space 11. 
+    2. Player 1 checks their interaction with player 2 and finds they *aren't* on the same space and don't interact. 
+    3. Player 1 then checks their interaction with player 3 and finds they *do* interact because they're on the same 
+    space. That interaction sends player 1 to space 11 and player 3 to space 9. 
+    4. Player 1 and Player 2 are now on the same space (11), but they *do not* interact because the interaction 
+    between that pair of players was *already* checked!
+* When the interaction deck or event deck is depleted, it is cycled through in the same order rather than re-shuffled. 
+For example, if you have a 12 card event deck, the entire deck has been used after 12 turns. I chose to then cycle 
+back through the deck in the same order rather than re-shuffling it. I originally thought this wouldn't have much 
+consequence as the game's outcome should mostly depend on the frequency of event cards in the event deck. However, I 
+realized that, with a short 25 space board,streaks can matter a lot! Consider that, if the `default_event_deck` ends on 
+2 Wildfires and then those 2 Wildfires re-shuffle to thetop of the deck (i.e. 4 Wildfires in a row; impossible when the 
+deck is cycled rather than re-shuffled). That streak will move `momerath_herb` forward *20 spaces*, 80% of the board! I 
+still think I like cycling the decks better than re-shuffling for the simulation, but it isn't as consequence-free as 
+I originally thought. I may add an option for re-shuffling on depletion in the future.
 
 That's the end of the vignette. If you have questions, please contact me at the github repository listed 
 in the package description.
