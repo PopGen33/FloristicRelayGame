@@ -29,3 +29,5 @@ Suggests:
     ggplot2,
     ggthemes
 VignetteBuilder: knitr
+URL: https://github.com/PopGen33/FloristicRelayGame
+BugReports: https://github.com/PopGen33/FloristicRelayGame/issues

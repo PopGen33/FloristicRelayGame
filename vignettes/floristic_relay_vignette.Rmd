@@ -202,7 +202,10 @@ for(i in 1:sample_size){
     player_order <- sample(default_players)
     
     # simulate game
-    game_result <- simulate_floristic_game(default_gameboard, shuffed_event_deck, shuffed_interaction_deck, player_order)
+    game_result <- simulate_floristic_game(default_gameboard, 
+                                           shuffed_event_deck, 
+                                           shuffed_interaction_deck, 
+                                           player_order)
     
     # cbind on the game number (unique identifier for each game)
     game_result <- cbind(game_number = rep(i, times = nrow(game_result)), game_result)
@@ -249,7 +252,10 @@ for(i in 1:sample_size){
     player_order <- sample(default_players)
     
     # simulate game
-    game_result <- simulate_floristic_game(default_gameboard, shuffed_event_deck, shuffed_interaction_deck, player_order)
+    game_result <- simulate_floristic_game(default_gameboard, 
+                                           shuffed_event_deck, 
+                                           shuffed_interaction_deck, 
+                                           player_order)
     
     # cbind on the game number (unique identifier for each game)
     game_result <- cbind(game_number = rep(i, times = nrow(game_result)), game_result)
