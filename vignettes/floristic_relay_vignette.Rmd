@@ -294,7 +294,7 @@ ggplot(all_results, mapping = aes(x = Late_or_Early, fill = Plant_Name)) +
 
 Now, let's graph the results from the 1000 simulations using the fire-heavy event deck:
 ```{r graph_fire_deck}
-# Stacked bar plot for the 1000 simulations using the default event deck
+# Stacked bar plot for the 1000 simulations using the fire-heavy event deck
 ggplot(all_results_fire, mapping = aes(x = Late_or_Early, fill = Plant_Name)) + 
     geom_bar(position = "stack", color = "black") + 
     scale_y_continuous(limits = c(0, 1000), breaks = seq(0, 1000, 200)) +
